@@ -32,6 +32,9 @@ const MaxCountMaxValue = 500
 // MaxCountMinValue is the minimum allowed value for the max-count param.
 const MaxCountMinValue = 1
 
+// SHARegex is a regex for SHA[0:10] slice of a git hash.
+var SHARegex = regexp.MustCompile("[0-9a-fA-F]{10}")
+
 // ParseSHAParam parses and validates the 'sha' param for the request.
 // It returns "latest" by default (and in error cases).
 func ParseSHAParam(r *http.Request) (runSHA string, err error) {
@@ -43,8 +46,7 @@ func ParseSHAParam(r *http.Request) (runSHA string, err error) {
 	}
 
 	runParam := params.Get("sha")
-	regex := regexp.MustCompile("[0-9a-fA-F]{10}")
-	if regex.MatchString(runParam) {
+	if SHARegex.MatchString(runParam) {
 		runSHA = runParam
 	}
 	return runSHA, err
@@ -68,9 +70,9 @@ func ParseBrowserParam(r *http.Request) (browser string, err error) {
 	return "", nil
 }
 
-// ParseBrowsersParam parses the 'browsers' parameter, split on commas.
-// If empty, it also checks for the (repeatable) 'browser' params, before falling back to the default set of
-// browsers.
+// ParseBrowsersParam returns a sorted list of browsers to include.
+// It parses the 'browsers' parameter, split on commas, and also checks for the (repeatable) 'browser' params,
+// before falling back to the default set of browsers.
 func ParseBrowsersParam(r *http.Request) (browsers []string, err error) {
 	browsers = r.URL.Query()["browser"]
 	if browsersParam := r.URL.Query().Get("browsers"); browsersParam != "" {
