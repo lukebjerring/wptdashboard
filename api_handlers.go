@@ -57,7 +57,15 @@ func apiTestRunsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var testRuns []TestRun
-	baseQuery := datastore.NewQuery("TestRun").Order("-CreatedAt").Limit(1)
+	var limit int
+	if limit, err = ParseMaxCountParam(r); err != nil {
+		http.Error(w, "Invalid 'max-count' param: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	baseQuery := datastore.
+		NewQuery("TestRun").
+		Order("-CreatedAt").
+		Limit(limit)
 
 	for _, browserName := range browserNames {
 		var testRunResults []TestRun
@@ -115,7 +123,6 @@ func apiTestRunGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := appengine.NewContext(r)
-
 	query := datastore.
 		NewQuery("TestRun").
 		Order("-CreatedAt").
