@@ -19,8 +19,18 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
+
+// MaxCountDefaultValue is the default value returned by ParseMaxCountParam for the max-count param.
+const MaxCountDefaultValue = 1
+
+// MaxCountMaxValue is the maximum allowed value for the max-count param.
+const MaxCountMaxValue = 500
+
+// MaxCountMinValue is the minimum allowed value for the max-count param.
+const MaxCountMinValue = 1
 
 // ParseSHAParam parses and validates the 'sha' param for the request.
 // It returns "latest" by default (and in error cases).
@@ -86,4 +96,21 @@ func ParseBrowsersParam(r *http.Request) (browsers []string, err error) {
 	}
 	sort.Strings(browsers)
 	return browsers, nil
+}
+
+// ParseMaxCountParam parses the 'max-count' parameter as an integer.
+func ParseMaxCountParam(r *http.Request) (count int, err error) {
+	count = MaxCountDefaultValue
+	if browsersParam := r.URL.Query().Get("max-count"); browsersParam != "" {
+		if count, err = strconv.Atoi(browsersParam); err != nil {
+			return MaxCountDefaultValue, err
+		}
+		if count < MaxCountMinValue {
+			count = MaxCountMinValue
+		}
+		if count > MaxCountMaxValue {
+			count = MaxCountMaxValue
+		}
+	}
+	return count, err
 }
