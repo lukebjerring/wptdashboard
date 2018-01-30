@@ -13,6 +13,7 @@ SHELL := /bin/bash
 
 WPTD_PATH ?= /home/jenkins/wptdashboard
 WPTD_GO_PATH ?= $(GOPATH)/src/github.com/w3c/wptdashboard
+WEBDRIVER_PATH ?= $(WPTD_GO_PATH)/webdriver
 
 BQ_LIB_REPO ?= github.com/GoogleCloudPlatform/protoc-gen-bq-schema
 PB_LIB_DIR ?= ../protobuf/src
@@ -55,8 +56,12 @@ go_lint: go_deps
 	# Print differences between current/gofmt'd output, check empty.
 	cd $(WPTD_GO_PATH); ! gofmt -d $(GO_FILES) 2>&1 | read
 
+# Non-webdriver tests.
 go_test: go_deps
-	cd $(WPTD_GO_PATH); go test -v ./...
+	cd $(WPTD_GO_PATH)/metrics; go test -v ./...
+	cd $(WPTD_GO_PATH)/shared; go test -v ./...
+	cd $(WPTD_GO_PATH)/util; go test -v ./...
+	cd $(WPTD_GO_PATH)/webapp; go test -v .
 
 bq_proto: submodules $(PROTOS)
 	mkdir -p $(PB_BQ_OUT_DIR)
@@ -81,8 +86,16 @@ py_deps: $(find . -type f | grep '\.py$' | grep -v '\_pb.py$')
 	pip install -r requirements.txt
 
 go_deps: $(find .  -type f | grep '\.go$' | grep -v '\.pb.go$')
-	cd $(WPTD_GO_PATH); go get -t ./...
+	cd $(WPTD_GO_PATH); go get -t -v ./...
 
 dev_data:
 	cd $(WPTD_GO_PATH)/util; go get -t ./...
 	go run util/populate_dev_data.go
+
+go_webdriver_test: go_deps webdriver_deps
+	cd $(WEBDRIVER_PATH); go test -v .
+
+go_webdriver_deps: go_deps webdriver_deps
+
+webdriver_deps:
+	cd $(WEBDRIVER_PATH); ./install.sh

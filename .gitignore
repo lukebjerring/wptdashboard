@@ -7,3 +7,6 @@ bq-schema
 generated
 webapp/bower_components/*
 !webapp/bower_components/{polymer,shadycss,webcomponentsjs}
+webdriver/selenium-server-standalone*
+webdriver/geckodriver*
+webdriver/firefox-58.0*
