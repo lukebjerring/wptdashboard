@@ -2,7 +2,9 @@ package webdriver
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -10,29 +12,50 @@ import (
 	"github.com/tebeka/selenium"
 	"github.com/w3c/wptdashboard/shared"
 	"google.golang.org/appengine/datastore"
-	"log"
+)
+
+var (
+	staging = flag.Bool("staging", false, "Use the app's staging instance deployed using git/git-deploy")
 )
 
 func TestSearch(t *testing.T) {
-	devAppserverInstance, err := NewWebserver()
-	if err != nil {
-		panic(err)
-	}
-	defer devAppserverInstance.Close()
-	if err = devAppserverInstance.AwaitReady(); err != nil {
-		panic(err)
-	}
+	var webapp Webapp
+	if *staging {
+		stagingWebapp, err := GetStagingInstance()
+		if err != nil {
+			panic(err)
+		}
+		webapp = stagingWebapp
+	} else {
+		devAppserverInstance, err := NewWebserver()
+		if err != nil {
+			panic(err)
+		}
+		defer devAppserverInstance.Close()
+		if err = devAppserverInstance.AwaitReady(); err != nil {
+			panic(err)
+		}
 
-	if err = addStaticData(devAppserverInstance); err != nil {
-		panic(err)
+		if err = addStaticData(devAppserverInstance); err != nil {
+			panic(err)
+		}
+		webapp = Webapp(devAppserverInstance)
 	}
 
 	service, wd, err := FirefoxWebDriver()
+	if err != nil {
+
+	}
 	defer service.Stop()
 	defer wd.Quit()
 
 	// Navigate to the wpt.fyi homepage.
-	if err := wd.Get(devAppserverInstance.GetWebappUrl("/")); err != nil {
+	homepage := webapp.GetWebappUrl("/")
+	if *staging {
+		homepage = homepage + "?sha=b952881825"
+	}
+
+	if err := wd.Get(homepage); err != nil {
 		panic(err)
 	}
 
