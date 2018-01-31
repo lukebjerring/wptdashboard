@@ -38,6 +38,7 @@ matrix:
     #     - MAKE_TEST_TARGET=jenkins_test
 
 before_install: |
+  openssl aes-256-cbc -K $encrypted_ddee49501f31_key -iv $encrypted_ddee49501f31_iv -in client-secret.json.enc -out client-secret.json -d
   export DOCKER_FILE=Dockerfile.dev
   export DOCKER_IMAGE=wptd-dev
   export DOCKER_INSTANCE=wptd-dev-${RANDOM}
