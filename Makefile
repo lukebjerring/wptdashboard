@@ -91,7 +91,15 @@ dev_data:
 go_webdriver_test: go_deps webdriver_deps
 	cd $(WEBDRIVER_PATH); go test -v .
 
+go_webdriver_test_staging: go_deps webdriver_deps
+	cd $(WEBDRIVER_PATH); go test -v . --staging
+
 go_webdriver_deps: go_deps webdriver_deps
 
 webdriver_deps:
 	cd $(WEBDRIVER_PATH); ./install.sh
+
+webapp_deploy_staging:
+	gcloud config set project wptdashboard
+	gcloud auth activate-service-account --key-file $(WPTD_PATH)/client-secret.json
+	cd $(WPTD_PATH)/git; ./git-deploy -q
