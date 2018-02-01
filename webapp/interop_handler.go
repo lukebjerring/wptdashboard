@@ -6,7 +6,7 @@ package webapp
 
 import (
 	"encoding/json"
-	"github.com/w3c/wptdashboard/metrics"
+	"github.com/lukebjerring/wptdashboard/metrics"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"net/http"

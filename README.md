@@ -1,4 +1,4 @@
-# [web-platform-tests dashboard](https://wpt.fyi/) 📈 [![Build Status](https://travis-ci.org/w3c/wptdashboard.svg?branch=master)](https://travis-ci.org/w3c/wptdashboard)
+# [web-platform-tests dashboard](https://wpt.fyi/) 📈 [![Build Status](https://travis-ci.org/lukebjerring/wptdashboard.svg?branch=master)](https://travis-ci.org/w3c/wptdashboard)
 
 A dashboard of cross-browser results for [web-platform-tests](https://github.com/w3c/web-platform-tests).
 
@@ -43,7 +43,7 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more information on local developmen
 
 ## Running the tests
 
-We run the tests in the development environment with a Python script [`run/run.py`](run/run.py) which is a thin wrapper around WPT's [`wpt run`](https://github.com/w3c/web-platform-tests/#running-tests-automatically). If you're triaging test failures, use `wpt run`.
+We run the tests in the development environment with a Python script [`run/run.py`](run/run.py) which is a thin wrapper around WPT's [`wpt run`](https://github.com/lukebjerring/web-platform-tests/#running-tests-automatically). If you're triaging test failures, use `wpt run`.
 
 ### Running
 
@@ -117,7 +117,7 @@ Structure:
 
 There is no public API for TestRuns, so if you need to access only the most recent results, looking at
 the main page will give you the latest test SHAs. If you need to access earlier results, an
-exhaustive search is the only way to do that (see issue [#73](https://github.com/w3c/wptdashboard/issues/73) and [#43](https://github.com/w3c/wptdashboard/issues/43)).
+exhaustive search is the only way to do that (see issue [#73](https://github.com/lukebjerring/wptdashboard/issues/73) and [#43](https://github.com/lukebjerring/wptdashboard/issues/43)).
 
 ## Miscellaneous
 

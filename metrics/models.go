@@ -7,7 +7,7 @@ package metrics
 import (
 	"time"
 
-	base "github.com/w3c/wptdashboard/shared"
+	base "github.com/lukebjerring/wptdashboard/shared"
 )
 
 // ByCreatedDate sorts tests by run's CreatedAt date (descending)

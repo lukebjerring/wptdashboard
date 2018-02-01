@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/w3c/wptdashboard/metrics"
-	base "github.com/w3c/wptdashboard/shared"
+	"github.com/lukebjerring/wptdashboard/metrics"
+	base "github.com/lukebjerring/wptdashboard/shared"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/appengine/datastore"

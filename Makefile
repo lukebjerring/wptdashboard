@@ -12,7 +12,7 @@
 SHELL := /bin/bash
 
 WPTD_PATH ?= /home/jenkins/wptdashboard
-WPTD_GO_PATH ?= $(GOPATH)/src/github.com/w3c/wptdashboard
+WPTD_GO_PATH ?= $(GOPATH)/src/github.com/lukebjerring/wptdashboard
 
 BQ_LIB_REPO ?= github.com/GoogleCloudPlatform/protoc-gen-bq-schema
 PB_LIB_DIR ?= ../protobuf/src

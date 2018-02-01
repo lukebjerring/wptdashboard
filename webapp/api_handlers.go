@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	models "github.com/w3c/wptdashboard/shared"
+	models "github.com/lukebjerring/wptdashboard/shared"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"

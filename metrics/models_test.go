@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"fmt"
+	models "github.com/lukebjerring/wptdashboard/shared"
 	"github.com/stretchr/testify/assert"
-	models "github.com/w3c/wptdashboard/shared"
 )
 
 var today = time.Date(2018, 1, 4, 0, 0, 0, 0, time.UTC)
