@@ -88,6 +88,6 @@ dev_data:
 	go run util/populate_dev_data.go
 
 webapp_deploy_staging:
-	gcloud config set project wptdashboard
+	gcloud config set project llbj-wptd
 	gcloud auth activate-service-account --key-file $(WPTD_PATH)/client-secret.json
 	cd $(WPTD_PATH)/git; ./git-deploy -q

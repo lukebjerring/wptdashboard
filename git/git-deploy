@@ -30,11 +30,11 @@ PROMOTE="--no-promote"
 if [[ ${PRODUCTION} == 'true' ]]
 then
   info "Producing production configuration..."
-  if [[ "${USER}" != "w3c" ]]
+  if [[ "${USER}" != "lukebjerring" ]]
   then
     if [[ "${QUIET}" != "true" ]]
     then
-        confirm "Are you sure you want to be deploying a non-w3c repo (${USER})?"
+        confirm "Are you sure you want to be deploying a non-lukebjerring repo (${USER})?"
         if [ "${?}" != "0" ]; then exit "${?}"; fi
     fi
   fi
