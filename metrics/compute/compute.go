@@ -8,8 +8,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/w3c/wptdashboard/metrics"
-	base "github.com/w3c/wptdashboard/shared"
+	"github.com/lukebjerring/wptdashboard/metrics"
+	base "github.com/lukebjerring/wptdashboard/shared"
 )
 
 type TestRunsStatus map[metrics.TestId]map[base.TestRun]metrics.CompleteTestStatus
