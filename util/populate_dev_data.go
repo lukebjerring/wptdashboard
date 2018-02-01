@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/lukebjerring/wptdashboard/metrics"
 	base "github.com/lukebjerring/wptdashboard/shared"
@@ -14,6 +15,10 @@ import (
 	"google.golang.org/appengine/remote_api"
 	"log"
 	"time"
+)
+
+var (
+	host = flag.String("host", "localhost:9999", "Host to connect to.")
 )
 
 // populate_dev_data.go populates a local running webapp instance with some
@@ -26,6 +31,8 @@ import (
 // Usage (from util/):
 // go run populate_dev_data.go
 func main() {
+	flag.Parse()
+
 	ctx, err := getRemoteApiContext()
 	if err != nil {
 		log.Fatal(err)
@@ -158,7 +165,6 @@ func addData(ctx context.Context, kindName string, data []interface{}) {
 }
 
 func getRemoteApiContext() (context.Context, error) {
-	const host = "localhost:9999"
 	ctx := context.Background()
 
 	hc, err := google.DefaultClient(ctx,
@@ -168,6 +174,6 @@ func getRemoteApiContext() (context.Context, error) {
 		log.Fatal(err)
 	}
 	var remoteContext context.Context
-	remoteContext, err = remote_api.NewRemoteContext(host, hc)
+	remoteContext, err = remote_api.NewRemoteContext(*host, hc)
 	return remoteContext, err
 }
