@@ -44,6 +44,12 @@ matrix:
         - DOCKER_INSTANCE=wptd-testrun-jenkins-${RANDOM}
         - INSTALL_TARGET=jenkins_install
         - TEST_TARGET=jenkins_test
+     - language: go
+       env:
+         - DOCKER_FILE=Dockerfile.dev
+         - DOCKER_IMAGE=wptd-dev
+         - DOCKER_INSTANCE=wptd-dev-${RANDOM}
+         - INSTALL_TARGET=webapp_deploy_staging
 
 before_install:
   - openssl aes-256-cbc -K $encrypted_ff550fe9b09f_key -iv $encrypted_ff550fe9b09f_iv
@@ -57,7 +63,7 @@ install:
   - docker exec -u 0:0 "${DOCKER_INSTANCE}" chown -R $(id -u $USER):$(id -g $USER) /home/jenkins
 
 script:
-  - docker exec -t -u $(id -u $USER):$(id -g $USER) "${DOCKER_INSTANCE}" make "${TEST_TARGET}"
+  - if [ "${TEST_TARGET}" != "" ]; then docker exec -t -u $(id -u $USER):$(id -g $USER) "${DOCKER_INSTANCE}" make "${TEST_TARGET}"; fi
 
 after_script:
   - docker stop "${DOCKER_INSTANCE}"

@@ -8,12 +8,16 @@ source "${REPO_DIR}/util/path.sh"
 WPTD_PATH=${WPTD_PATH:-$(absdir "${REPO_DIR}")}
 
 usage() {
-  info "Usage: git-deploy [-p] [-h]";
+  info "Usage: git-deploy [-p] [-h] [-q]";
 }
 
-while getopts ':ph' flag; do
+PRODUCTION='false'
+QUIET='false'
+
+while getopts ':phq' flag; do
   case "${flag}" in
     p) PRODUCTION='true' ;;
+    q) QUIET='true' ;;
     h|*) usage && exit 0;;
   esac
 done
@@ -26,21 +30,33 @@ PROMOTE="--no-promote"
 if [[ ${PRODUCTION} == 'true' ]]
 then
   info "Producing production configuration..."
-  if [[ "${USER}" != "w3c" ]]
+  if [[ "${USER}" != "lukebjerring" ]]
   then
-    confirm "Are you sure you want to be deploying a non-w3c repo (${USER})?"
-    if [ "${?}" != "0" ]; then exit "${?}"; fi
+    if [[ "${QUIET}" != "true" ]]
+    then
+        confirm "Are you sure you want to be deploying a non-lukebjerring repo (${USER})?"
+        if [ "${?}" != "0" ]; then exit "${?}"; fi
+    fi
   fi
   # Use SHA for prod-pushes.
   VERSION="$(git rev-parse --short HEAD)"
   PROMOTE="--promote"
 fi
 
-COMMAND="gcloud app deploy ${PROMOTE} --version=${VERSION} ${WPTD_PATH}/webapp"
+if [[ "${QUIET}" == "true" ]]
+then
+    QUIET_FLAG="-q"
+else
+    QUIET_FLAG=""
+fi
+COMMAND="gcloud app deploy ${PROMOTE} ${QUIET_FLAG} --version=${VERSION} ${WPTD_PATH}/webapp"
 
 info "Deploy command:\n${COMMAND}"
-confirm "Execute?"
-if [ "${?}" != "0" ]; then exit "${?}"; fi
+if [[ "${QUIET}" != "true" ]]
+then
+    confirm "Execute?"
+    if [ "${?}" != "0" ]; then exit "${?}"; fi
+fi
 
 info "Executing..."
 ${COMMAND}
