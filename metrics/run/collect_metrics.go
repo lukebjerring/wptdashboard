@@ -43,7 +43,7 @@ func init() {
 		"Google Cloud Platform project id")
 	inputGcsBucket = flag.String("input_gcs_bucket", "wptd",
 		"Google Cloud Storage bucket where test results are stored")
-	outputGcsBucket = flag.String("output_gcs_bucket", "wptd-metrics",
+	outputGcsBucket = flag.String("output_gcs_bucket", "llbj-wptd",
 		"Google Cloud Storage bucket where metrics are stored")
 	outputBQMetadataDataset = flag.String("output_bq_metadata_dataset",
 		fmt.Sprintf("wptd_metrics_%d", unixNow),
