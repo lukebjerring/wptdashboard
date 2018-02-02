@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/lukebjerring/wptdashboard/metrics"
 	"github.com/lukebjerring/wptdashboard/shared"
 )
@@ -228,11 +227,60 @@ func TestComputeTotals(t *testing.T) {
 	statusz[ac1z][runA] = subStatus2
 
 	totals := ComputeTotals(&statusz)
-	assert.Equal(t, 6, len(totals))   // a, a/b, a/c, a/b/1, a/b/2, a/c/1.
-	assert.Equal(t, 6, totals["a"])   // a/b/1, a/b/2, a/c/1, a/c/1:x, a/c/1:y, a/c/1:z.
-	assert.Equal(t, 2, totals["a/b"]) // a/b/1, a/b/2.
+	assert.NotContains(t, totals, "")
+	assert.NotContains(t, totals, "a")
+	assert.NotContains(t, totals, "a/b")
+	assert.NotContains(t, totals, "a/c")
 	assert.Equal(t, 1, totals["a/b/1"])
 	assert.Equal(t, 1, totals["a/b/2"])
-	assert.Equal(t, 4, totals["a/c"])   // a/c/1, a/c/1:x, a/c/1:y, a/c/1:z.
 	assert.Equal(t, 4, totals["a/c/1"]) // a/c/1, a/c/1:x, a/c/1:y, a/c/1:z.
+}
+
+func TestComputePassRateMetric(t *testing.T) {
+	statusz := make(TestRunsStatus)
+	status1 := metrics.CompleteTestStatus{
+		metrics.TestStatus_fromString("OK"),
+		metrics.SubTestStatus_fromString("STATUS_UNKNOWN"),
+	}
+	status2 := metrics.CompleteTestStatus{
+		metrics.TestStatus_fromString("ERROR"),
+		metrics.SubTestStatus_fromString("STATUS_UNKNOWN"),
+	}
+	subStatus1 := metrics.CompleteTestStatus{
+		metrics.TestStatus_fromString("OK"),
+		metrics.SubTestStatus_fromString("PASS"),
+	}
+	subStatus2 := metrics.CompleteTestStatus{
+		metrics.TestStatus_fromString("OK"),
+		metrics.SubTestStatus_fromString("NOT_RUN"),
+	}
+	ab1 := metrics.TestId{"a/b/1", ""}
+	ab2 := metrics.TestId{"a/b/2", ""}
+	ac1 := metrics.TestId{"a/c/1", ""}
+	ac1x := metrics.TestId{"a/c/1", "x"}
+	ac1y := metrics.TestId{"a/c/1", "y"}
+	ac1z := metrics.TestId{"a/c/1", "z"}
+	statusz[ab1] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	statusz[ab2] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	statusz[ac1] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	statusz[ac1x] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	statusz[ac1y] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	statusz[ac1z] = make(map[shared.TestRun]metrics.CompleteTestStatus)
+	// ab1 Passes in one but not other
+	statusz[ab1][runA] = status1
+	statusz[ab1][runB] = status2
+	// ab2 Passes in both
+	statusz[ab2][runA] = status1
+	statusz[ab2][runB] = status1
+	// ac1 passes 2/4 in one, not run in other.
+	statusz[ac1][runA] = subStatus1
+	statusz[ac1x][runA] = subStatus1
+	statusz[ac1y][runA] = subStatus2
+	statusz[ac1z][runA] = subStatus2
+
+	totals := ComputePassRateMetric(2, &statusz, OkAndUnknownOrPasses)
+	// ab1 fails in 1 run, passes in 1 run.
+	assert.Equal(t, []int{0, 1, 0}, totals["a/b/1"])
+	assert.Equal(t, []int{0, 0, 1}, totals["a/b/2"])
+	assert.Equal(t, []int{2, 2, 0}, totals["a/c/1"]) // a/c/1, a/c/1:x, a/c/1:y, a/c/1:z.
 }

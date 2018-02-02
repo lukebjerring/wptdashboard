@@ -6,7 +6,6 @@ package compute
 
 import (
 	"log"
-	"strings"
 
 	"github.com/lukebjerring/wptdashboard/metrics"
 	base "github.com/lukebjerring/wptdashboard/shared"
@@ -87,19 +86,13 @@ func GatherResultsById(allResults *[]metrics.TestRunResults) (
 // names included in results.
 func ComputeTotals(results *TestRunsStatus) (metrics map[string]int) {
 	metrics = make(map[string]int)
-
 	for testId := range *results {
-		pathParts := strings.Split(testId.Test, "/")
-		for i := range pathParts {
-			subPath := strings.Join(pathParts[:i+1], "/")
-			_, ok := metrics[subPath]
-			if !ok {
-				metrics[subPath] = 0
-			}
-			metrics[subPath] = metrics[subPath] + 1
+		_, ok := metrics[testId.Test]
+		if !ok {
+			metrics[testId.Test] = 0
 		}
+		metrics[testId.Test] = metrics[testId.Test] + 1
 	}
-
 	return metrics
 }
 
@@ -145,11 +138,8 @@ func ComputeBrowserFailureList(numRuns int, browserName string,
 //     Number of tests passed by n test runs,
 //   ],
 // }
-func ComputePassRateMetric(numRuns int,
-	results *TestRunsStatus, passes Passes) (
-	metrics map[string][]int) {
+func ComputePassRateMetric(numRuns int, results *TestRunsStatus, passes Passes)	(metrics map[string][]int) {
 	metrics = make(map[string][]int)
-
 	for testId, runStatuses := range *results {
 		passCount := 0
 		for _, status := range runStatuses {
@@ -157,16 +147,12 @@ func ComputePassRateMetric(numRuns int,
 				passCount++
 			}
 		}
-		pathParts := strings.Split(testId.Test, "/")
-		for i := range pathParts {
-			subPath := strings.Join(pathParts[:i+1], "/")
-			_, ok := metrics[subPath]
-			if !ok {
-				metrics[subPath] = make([]int, numRuns+1)
-			}
-			metrics[subPath][passCount] =
-				metrics[subPath][passCount] + 1
+
+		_, ok := metrics[testId.Test]
+		if !ok {
+			metrics[testId.Test] = make([]int, numRuns+1)
 		}
+		metrics[testId.Test][passCount] = metrics[testId.Test][passCount] + 1
 	}
 
 	return metrics
