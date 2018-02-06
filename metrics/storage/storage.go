@@ -9,9 +9,12 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"path"
 	"reflect"
 	"sort"
 	"strings"
@@ -25,6 +28,10 @@ import (
 	base "github.com/lukebjerring/wptdashboard/shared"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
+)
+
+var (
+	cachePath = flag.String("cache_path", "cache", "Path to cache the GCS objects")
 )
 
 type OutputLocation struct {
@@ -262,6 +269,13 @@ func (ctx BQContext) Output(id OutputId, metadata interface{},
 // context to load data from bucket.
 func LoadTestRunResults(ctx *GCSDatastoreContext, runs []base.TestRun) (
 	runResults []metrics.TestRunResults) {
+
+	if _, statErr := os.Stat(*cachePath); os.IsNotExist(statErr) {
+		if err := os.MkdirAll(*cachePath, 0700); err != nil {
+			log.Fatalf("Failed to create cache dir %s", *cachePath)
+		}
+	}
+
 	resultChan := make(chan metrics.TestRunResults, 0)
 	errChan := make(chan error, 0)
 	runResults = make([]metrics.TestRunResults, 0, 100000)
@@ -385,46 +399,93 @@ func processTestRun(ctx *GCSDatastoreContext, testRun *base.TestRun,
 func loadTestResults(ctx *GCSDatastoreContext, testRun *base.TestRun,
 	objName string, resultChan chan metrics.TestRunResults,
 	errChan chan error) {
-	// Read object from GCS
-	obj := ctx.Bucket.Handle.Object(objName)
-	reader, err := obj.NewReader(ctx.Context)
+
+	filename := path.Join(*cachePath, objName)
+	data, err := loadCachedFile(filename)
 	if err != nil {
-		errChan <- err
-		return
-	}
-	defer reader.Close()
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
+		log.Printf("Error reading cached object %s", filename)
 		errChan <- err
 		return
 	}
 
-	// Unmarshal JSON, which may be gzipped.
-	var results metrics.TestResults
-	var anyResult interface{}
-	if err := json.Unmarshal(data, &anyResult); err != nil {
-		reader2 := bytes.NewReader(data)
-		reader3, err := gzip.NewReader(reader2)
+	if data == nil {
+		data, err = fetchFile(objName, ctx)
 		if err != nil {
+			// 404?
+			if storage.ErrObjectNotExist == err {
+				return
+			}
+			log.Printf("Error fetching object %s", objName)
 			errChan <- err
 			return
 		}
+		// Might get a 404.
+		if data == nil {
+			return
+		}
+		writeCacheFile(filename, data)
+		if err != nil {
+			log.Printf("Error writing cache object %s", filename)
+			errChan <- err
+			return
+		}
+	}
+
+	// Unmarshal JSON, which may be gzipped.
+	var results metrics.TestResults
+	jsonData := data
+
+	// Try unzip
+	reader2 := bytes.NewReader(data)
+	reader3, err := gzip.NewReader(reader2)
+	if err == nil {
 		defer reader3.Close()
 		unzippedData, err := ioutil.ReadAll(reader3)
 		if err != nil {
+			log.Printf("Error reading unzipped object %s", objName)
 			errChan <- err
 			return
 		}
-		if err := json.Unmarshal(unzippedData, &results); err != nil {
-			errChan <- err
-			return
-		}
-		resultChan <- metrics.TestRunResults{testRun, &results}
-	} else {
-		if err := json.Unmarshal(data, &results); err != nil {
-			errChan <- err
-			return
-		}
-		resultChan <- metrics.TestRunResults{testRun, &results}
+		jsonData = unzippedData
 	}
+
+	if err := json.Unmarshal(jsonData, &results); err != nil {
+		log.Printf("Error unmarshalling object %s", objName)
+		errChan <- err
+		return
+	}
+	resultChan <- metrics.TestRunResults{testRun, &results}
+}
+
+func loadCachedFile(filename string) ([]byte, error) {
+	if _, statErr := os.Stat(filename); os.IsNotExist(statErr) {
+		return nil, nil
+	}
+	return ioutil.ReadFile(filename)
+}
+
+func writeCacheFile(filename string, data []byte) error {
+	// Make parent dir(s).
+	func() {
+		pieces := strings.Split(filename, "/")
+		parentDir := strings.Join(pieces[:len(pieces) - 1], "/")
+		if err := os.MkdirAll(parentDir, 0700); err != nil {
+			log.Printf("Failed to make parent dir %s", parentDir)
+		}
+	}()
+
+	// Write cache file.
+	return ioutil.WriteFile(filename, data, 0700)
+}
+
+func fetchFile(objName string, ctx *GCSDatastoreContext) ([]byte, error) {
+	// Read object from GCS
+	obj := ctx.Bucket.Handle.Object(objName)
+	reader, err := obj.NewReader(ctx.Context)
+	if err != nil {
+		log.Printf("Error loading object %s: %s", objName, err.Error())
+		return nil, err
+	}
+	defer reader.Close()
+	return ioutil.ReadAll(reader)
 }
