@@ -22,29 +22,35 @@ import (
 	"time"
 )
 
-var wptDataPath *string
-var projectId *string
-var inputGcsBucket *string
-var outputGcsBucket *string
-var wptdHost *string
-var outputBQMetadataDataset *string
-var outputBQDataDataset *string
-var outputBQPassRateTable *string
-var outputBQPassRateMetadataTable *string
-var outputBQFailuresTable *string
-var outputBQFailuresMetadataTable *string
-
-func init() {
-	unixNow := time.Now().Unix()
+var (
 	wptDataPath = flag.String("wpt_data_path", os.Getenv("HOME")+
 		"/wpt-data", "Path to data directory for local data copied "+
 		"from Google Cloud Storage")
-	projectId = flag.String("project_id", "wptdashboard",
+	wptdHost = flag.String("wptd_host", "wpt.fyi",
+		"Hostname of endpoint that serves WPT Dashboard data API")
+
+	projectId = flag.String("project_id", "llbj-wptd",
 		"Google Cloud Platform project id")
+
 	inputGcsBucket = flag.String("input_gcs_bucket", "wptd",
 		"Google Cloud Storage bucket where test results are stored")
-	outputGcsBucket = flag.String("output_gcs_bucket", "llbj-wptd",
+
+	outputGCS = flag.Bool("output_gcs", true, "Whether to output the results to Google Cloud Storage.")
+	outputGcsBucket = flag.String("output_gcs_bucket", "llbj-wptd.appspot.com",
 		"Google Cloud Storage bucket where metrics are stored")
+
+	outputBQ = flag.Bool("output_bq", false, "Whether to output the results to BigQuery.")
+	outputBQMetadataDataset *string
+	outputBQDataDataset *string
+	outputBQPassRateTable *string
+	outputBQPassRateMetadataTable *string
+	outputBQFailuresTable *string
+	outputBQFailuresMetadataTable *string
+)
+
+// Time-dependent flag initialization.
+func init() {
+	unixNow := time.Now().Unix()
 	outputBQMetadataDataset = flag.String("output_bq_metadata_dataset",
 		fmt.Sprintf("wptd_metrics_%d", unixNow),
 		"BigQuery dataset where metrics metadata are stored")
@@ -63,8 +69,6 @@ func init() {
 	outputBQFailuresMetadataTable = flag.String("output_bq_failures_metadata_table",
 		fmt.Sprintf("FailuresMetadata_%d", unixNow),
 		"BigQuery table where pass rate metrics are stored")
-	wptdHost = flag.String("wptd_host", "wpt.fyi",
-		"Hostname of endpoint that serves WPT Dashboard data API")
 }
 
 func main() {
@@ -81,10 +85,15 @@ func main() {
 	log.SetOutput(logFile)
 
 	ctx := context.Background()
-	gcsClient, err := gcs.NewClient(ctx)
-	if err != nil {
-		log.Fatal(err)
+
+	var gcsClient *gcs.Client
+	if *outputGCS {
+		gcsClient, err = gcs.NewClient(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
+
 	inputBucket := gcsClient.Bucket(*inputGcsBucket)
 	inputCtx := storage.GCSDatastoreContext{
 		Context: ctx,
@@ -140,28 +149,37 @@ func main() {
 	log.Println("Computed metrics")
 	log.Println("Uploading metrics")
 
-	outputBucket := gcsClient.Bucket(*outputGcsBucket)
-	datastoreClient, err := datastore.NewClient(ctx, *projectId)
-	if err != nil {
-		log.Fatal(err)
+	var outputters []storage.Outputter
+	if *outputGCS {
+		datastoreClient, err := datastore.NewClient(ctx, *projectId)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		outputBucket := gcsClient.Bucket(*outputGcsBucket)
+		outputters = append(
+			outputters,
+			storage.GCSDatastoreContext{
+				Context: ctx,
+				Bucket: storage.Bucket{
+					Name:   *outputGcsBucket,
+					Handle: outputBucket,
+				},
+				Client: datastoreClient,
+			})
 	}
-	bigqueryClient, err := bigquery.NewClient(ctx, *projectId)
-	if err != nil {
-		log.Fatal(err)
-	}
-	outputters := [2]storage.Outputter{
-		storage.GCSDatastoreContext{
-			Context: ctx,
-			Bucket: storage.Bucket{
-				Name:   *outputGcsBucket,
-				Handle: outputBucket,
-			},
-			Client: datastoreClient,
-		},
-		storage.BQContext{
-			Context: ctx,
-			Client:  bigqueryClient,
-		},
+	if *outputBQ {
+		bigqueryClient, err := bigquery.NewClient(ctx, *projectId)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		outputters = append(
+			outputters,
+			storage.BQContext{
+				Context: ctx,
+				Client:  bigqueryClient,
+			})
 	}
 
 	gcsDir := fmt.Sprintf("%d-%d", readStartTime.Unix(),
