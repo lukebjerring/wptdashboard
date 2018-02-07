@@ -348,30 +348,52 @@ found in the LICENSE file.
       } else {
         return {
           metadata: allMetrics.metadata,
-          data: allMetrics.data.filter(this.filterNode.bind(this, path === '/' ? path : `${this.path}/`, query))
+          data: this.collapseResultsByPath(path, allMetrics.data, query)
         }
       }
     }
 
-    filterNode (path, query, node) {
-      const dir = node.dir;
-      if (dir.indexOf(path) !== 0) {
-        return false;
-      }
-      const subdir = dir.substr(path.length);
-      if (!query) {
-        return subdir.indexOf('/') === -1
-      }
-      let test;
-      try {
-        const re = new RegExp(query.replace(/\//g, '\\/'), 'i');
-        test = re.test.bind(re);
-      } catch (e) {
-        test = str => str.indexOf(query) !== -1
-      }
-      return this.shouldQueryAll()
-        ? test(subdir)
-        : subdir.indexOf('/') === -1 && test(subdir);
+    collapseResultsByPath(path, data, query) {
+      let collapsed = new Map();
+      const currentPathParts = this.splitIntoLinkedParts(path);
+      const partCountIfTestFile = path == '/' ? 1 : currentPathParts.length + 1;
+      const nextSubdirIndex = path == '/' ? 0 : currentPathParts.length;
+      
+      data.forEach(node => {
+        if (node.dir.indexOf(path) != 0) {
+          return;
+        } else if (!!query && !node.dir.toLowerCase().includes(query.toLowerCase())) {
+          return;
+        }
+        
+        let parts = this.splitIntoLinkedParts(node.dir);
+        // Test files
+        if (parts.length === partCountIfTestFile) {
+          collapsed.set(parts[parts.length - 1].name, {
+            dir: parts[parts.length - 1].path,
+            pass_rates: node.pass_rates,
+            total: node.total
+          });
+
+        // Subdirectories
+        } else if (parts.length > partCountIfTestFile) {
+          const part = parts[nextSubdirIndex];
+          if (!collapsed.has(part.name)) {
+            collapsed.set(part.name, {
+              dir: part.path,
+              pass_rates: node.pass_rates,
+              total: node.total
+            });
+          } else {
+            let collapsedNode = collapsed.get(part.name);
+            for (let i in node.pass_rates) {
+              collapsedNode.pass_rates[i] = collapsedNode.pass_rates[i] + node.pass_rates[i];
+            }
+            collapsedNode.total += node.total;
+          }
+        }
+      });
+      return Array.from(collapsed.values());
     }
 
     relPath(path) {
@@ -411,7 +433,7 @@ found in the LICENSE file.
       if (!allMetrics || !path || path === '/') {
         return null;
       }
-      const currentNode = allMetrics.data.filter(node => node.dir === path)[0];
+      const currentNode = allMetrics.data.filter(node => node.dir.indexOf(path) == 0);
       return currentNode || null;
     }
 
