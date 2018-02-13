@@ -27,6 +27,7 @@ import (
 	"github.com/w3c/wptdashboard/metrics"
 	base "github.com/w3c/wptdashboard/shared"
 	"golang.org/x/net/context"
+	"golang.org/x/time/rate"
 	"google.golang.org/api/iterator"
 )
 
@@ -47,6 +48,7 @@ type Outputter interface {
 
 var (
 	cachePath = flag.String("cache_path", "", "Path to cache the GCS objects. If empty, fetches are not cached.")
+	limiter = rate.NewLimiter(50, 50)
 )
 
 // Encapsulate bucket name and handle; both are needed for some storage
@@ -482,6 +484,8 @@ func writeCacheFile(filename string, data []byte) error {
 }
 
 func fetchFile(objName string, ctx *GCSDatastoreContext) ([]byte, error) {
+	// Rate limit.
+	limiter.Wait(ctx.Context)
 	// Read object from GCS
 	obj := ctx.Bucket.Handle.Object(objName)
 	reader, err := obj.NewReader(ctx.Context)
