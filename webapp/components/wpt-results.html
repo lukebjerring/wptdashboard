@@ -136,7 +136,7 @@ found in the LICENSE file.
           <template is="dom-repeat" items="{{displayedNodes}}" as="node">
             <tr>
               <td>
-                <path-part path="{{ node.path }}" is-dir="{{ node.isDir }}" navigate="{{ bindNavigate() }}"></path-part>
+                <path-part prefix='/results' path="{{ node.path }}" is-dir="{{ node.isDir }}" navigate="{{ bindNavigate() }}"></path-part>
               </td>
 
               <template is="dom-repeat" items="{{testRuns}}" as="testRun">
@@ -159,6 +159,8 @@ found in the LICENSE file.
   </template>
 
   <script>
+    const urlToResultsPath = location => location.pathname.replace(/\/results(.+)(\/)?$/, '$1');
+
     /* global TestRunsBase */
     class WPTResults extends TestRunsBase {
       static get is() {
@@ -181,7 +183,7 @@ found in the LICENSE file.
           },
           path: {
             type: String,
-            value: window.location.pathname.replace(/(.+)(\/)$/, '$1')
+            value: urlToResultsPath(window.location)
           },
           pathIsATestFile: {
             type: Boolean,
@@ -324,7 +326,7 @@ found in the LICENSE file.
 
       navigate(event) {
         event.preventDefault();
-        let path = event.target.pathname.replace(/(.+)(\/)$/, '$1');
+        let path = urlToResultsPath(event.target);
         if (path === this.path) {
           return;
         }
@@ -342,7 +344,7 @@ found in the LICENSE file.
             .map(btoa);
           path += `before=${before}&after=${after}`;
         }
-        window.history.pushState({}, '', path);
+        window.history.pushState({}, '', `/results${path}`);
 
         // Send Google Analytics pageview event
         if ('ga' in window) {
